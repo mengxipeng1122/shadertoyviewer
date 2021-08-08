@@ -17,39 +17,6 @@ function main() {
   const scene = new THREE.Scene();
   const plane = new THREE.PlaneGeometry(2, 2);
 
-  const fragmentShader = `
-  #include <common>
-
-  uniform vec3 iResolution;
-  uniform float iTime;
-  uniform sampler2D iChannel0;
-
-  // By Daedelus: https://www.shadertoy.com/user/Daedelus
-  // license: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-  #define TIMESCALE 0.25
-  #define TILES 8
-  #define COLOR 0.7, 1.6, 2.8
-
-  void mainImage( out vec4 fragColor, in vec2 fragCoord )
-  {
-    vec2 uv = fragCoord.xy / iResolution.xy;
-    uv.x *= iResolution.x / iResolution.y;
-
-    vec4 noise = texture2D(iChannel0, floor(uv * float(TILES)) / float(TILES));
-    float p = 1.0 - mod(noise.r + noise.g + noise.b + iTime * float(TIMESCALE), 1.0);
-    p = min(max(p * 3.0 - 1.8, 0.1), 2.0);
-
-    vec2 r = mod(uv * float(TILES), 1.0);
-    r = vec2(pow(r.x - 0.5, 2.0), pow(r.y - 0.5, 2.0));
-    p *= 1.0 - pow(min(1.0, 12.0 * dot(r, r)), 2.0);
-
-    fragColor = vec4(COLOR, 1.0) * p;
-  }
-
-  void main() {
-    mainImage(gl_FragColor, gl_FragCoord.xy);
-  }
-  `;
   const loader = new THREE.TextureLoader();
   const texture = loader.load('https://threejsfundamentals.org/threejs/resources/images/bayer.png');
   texture.minFilter = THREE.NearestFilter;
@@ -61,11 +28,55 @@ function main() {
     iResolution:  { value: new THREE.Vector3() },
     iChannel0: { value: texture },
   };
-  const material = new THREE.ShaderMaterial({
-    fragmentShader,
-    uniforms,
-  });
-  scene.add(new THREE.Mesh(plane, material));
+
+  function convertShaderToyToThreejs(s)
+  {
+      return `
+        uniform vec3 iResolution; //Done: viewport resolution (in pixels)
+        uniform float iTime; //Done: shader playback time (in seconds)
+        uniform float iTimeDelta; //Done: render time (in seconds)
+        uniform int iFrame; //Done: shader playback frame
+
+        uniform float iChannelTime[4]; //Wont Do now: channel playback time (in seconds)
+        uniform vec3 iChannelResolution[4]; // channel resolution (in pixels)
+        uniform vec4 iMouse; // mouse pixel coords. xy: current (if MLB down), zw: click
+        //uniform samplerXX iChannel0..3; // input channel. XX = 2D/Cube
+        uniform sampler2D iChannel0; // input channel. XX = 2D/Cube
+        uniform sampler2D iChannel1; // input channel. XX = 2D/Cube
+        uniform sampler2D iChannel2; // input channel. XX = 2D/Cube
+        uniform sampler2D iChannel3; // input channel. XX = 2D/Cube
+        uniform vec4 iDate; //Do (year, month, day, time in seconds)
+        uniform float iSampleRate; //Wont Do sound sample rate (i.e., 44100)
+
+        varying vec2 vUv;
+
+        ${s}
+
+        void main()
+        {
+            vec4 c;
+            vec2 uv = gl_FragCoord.xy;
+            mainImage(c, uv);
+            gl_FragColor = c;
+        }
+
+      `
+  }
+
+  fetch('./shaders/molten.rock.fs')
+  .then(res=>res.text())
+  .then(fragmentShader=>{
+      fragmentShader = convertShaderToyToThreejs(fragmentShader)
+      console.log(fragmentShader)
+      const material = new THREE.ShaderMaterial({
+      fragmentShader,
+      uniforms,
+        });
+     scene.add(new THREE.Mesh(plane, material));
+  })
+  .catch(err=>{
+      console.log(err)
+      }) ;
 
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
