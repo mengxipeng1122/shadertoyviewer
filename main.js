@@ -1,6 +1,8 @@
 
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 
+import {shader} from './shaders/molten.rock.js'
+
 function main() {
   const canvas = document.querySelector('#c');
   const renderer = new THREE.WebGLRenderer({canvas});
@@ -63,20 +65,13 @@ function main() {
       `
   }
 
-  fetch('./shaders/molten.rock.fs')
-  .then(res=>res.text())
-  .then(fragmentShader=>{
-      fragmentShader = convertShaderToyToThreejs(fragmentShader)
-      console.log(fragmentShader)
-      const material = new THREE.ShaderMaterial({
-      fragmentShader,
-      uniforms,
-        });
-     scene.add(new THREE.Mesh(plane, material));
-  })
-  .catch(err=>{
-      console.log(err)
-      }) ;
+  const fragmentShader = convertShaderToyToThreejs(shader)
+  console.log(fragmentShader)
+  const material = new THREE.ShaderMaterial({
+  fragmentShader,
+  uniforms,
+    });
+  scene.add(new THREE.Mesh(plane, material));
 
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
