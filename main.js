@@ -1,7 +1,7 @@
 
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
 
-import {shader} from './shaders/molten.rock.js'
+import {shader} from './shaders/Tunnel.Beauty.js'
 
 function main() {
   const canvas = document.querySelector('#c');
